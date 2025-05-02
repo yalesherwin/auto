@@ -99,20 +99,28 @@
         if (!data.values || data.values.length < 2) return null;
 
         const headers = data.values[0];
-        const thicknessCol = headers.indexOf("厚度(MM)");
+        const thicknessCol = headers.findIndex(h => h.includes("厚度"));
         const priceCol = headers.findIndex(h => h.includes("RMB"));
 
         let closest = null;
         let minDiff = Infinity;
+
         for (let i = 1; i < data.values.length; i++) {
           const row = data.values[i];
-          const rowThickness = parseFloat(row[thicknessCol]);
+          const raw = row[thicknessCol];
+          if (!raw) continue;
+
+          const cleaned = raw.toString().replace(/[^\d.]/g, '');
+          const rowThickness = parseFloat(cleaned);
+          if (isNaN(rowThickness)) continue;
+
           const diff = Math.abs(rowThickness - thickness);
-          if (diff <= 0.02 && diff < minDiff) {
+          if (diff < minDiff && diff <= 0.02) {
             minDiff = diff;
             closest = parseFloat(row[priceCol]);
           }
         }
+
         return closest;
       } catch (e) {
         console.error("获取价格失败", e);
