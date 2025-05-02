@@ -41,7 +41,7 @@
       padding: 20px;
       background: white;
       border: 1px solid #ccc;
-      white-space: pre-wrap;
+      white-space: normal; overflow-x: auto;
     }
   </style>
 </head>
@@ -118,7 +118,8 @@
       }
 
       const { headers, row } = data;
-      let output = headers.map((h, i) => h.includes('成本') ? null : `${h}: ${row[i]}`).filter(Boolean).join(" | ");
+      let output = headers.map((h, i) => h.includes('成本') ? null : `<tr><td><strong>${h}</strong></td><td>${row[i]}</td></tr>`).filter(Boolean).join("");
+output = `<table style='width:100%;border-collapse:collapse;'>${output}</table>`;
 
       document.getElementById('result').style.display = 'block';
       document.getElementById('result').innerHTML = output;
