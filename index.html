@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CHINACNU 价格计算器</title>
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2.3.2/dist/email.min.js"></script> <!-- 修复SDK版本 -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/emailjs-com@3.2.0/dist/email.min.js"></script> <!-- 更新SDK版本 -->
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -77,7 +77,7 @@
   <button onclick="sendEmail()">发送报价到邮箱</button>
 
   <script>
-    emailjs.init("gd39HyL57gtXbqPmy"); // Public key, 请确保您已正确设置该 ID
+    emailjs.init("gd39HyL57gtXbqPmy"); // 使用您的EmailJS User ID
 
     async function getMatchingRow(product, thickness) {
       const sheetId = "1L8RGRPI7BdIlDew99K7QIXU5f7llOLqWqskwXb1lms4";
@@ -155,7 +155,8 @@
         message: content
       };
 
-      emailjs.send("service_6znq9zl", "template_nz69gvn", templateParams) // 使用您提供的 service_id 和 template_id
+      // 发送邮件
+      emailjs.send("service_6znq9zl", "template_nz69gvn", templateParams) // 使用您提供的service_id和template_id
         .then(() => alert("邮件已成功发送"))
         .catch(err => {
           console.error(err);
