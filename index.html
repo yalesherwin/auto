@@ -113,7 +113,8 @@
           const cleaned = raw.toString()
             .replace(/[．。]/g, '.')
             .replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 65248))
-            .replace(/[^\d.]/g, '');
+            .replace(/[^\d.]/g, '')
+            .trim();
 
           const rowThickness = parseFloat(cleaned);
           if (isNaN(rowThickness)) continue;
