@@ -63,30 +63,15 @@
   <label>厚度 (mm)</label>
   <input type="number" step="0.01" id="thickness" placeholder="例如 0.35">
 
-  <label>宽度 (mm)</label>
-  <input type="number" id="width" placeholder="例如 1000">
-
-  <label>锌层 (g/m²)</label>
-  <input type="number" id="zinc" placeholder="例如 80">
-
-  <label>漆膜厚度 (正面/背面)</label>
-  <input type="text" id="coating" placeholder="例如 20/5">
-
-  <label>包装方式</label>
-  <select id="package">
-    <option value="裸包">裸包</option>
-    <option value="精包">精包</option>
-  </select>
-
-  <label>吨数</label>
-  <input type="number" id="tons" placeholder="例如 10">
-
-  <button onclick="calculatePrice()">计算价格</button>
+  <button onclick="calculatePrice()">查找所有价格</button>
 
   <div class="result" id="result" style="display:none"></div>
 
   <script>
-    async function getBasePrice(product, thickness) {
+    async function calculatePrice() {
+      const product = document.getElementById('product').value;
+      const thickness = parseFloat(document.getElementById('thickness').value);
+
       const sheetId = "1L8RGRPI7BdIlDew99K7QIXU5f7llOLqWqskwXb1lms4";
       const sheetName = encodeURIComponent(product);
       const range = "A1:Z100";
@@ -96,80 +81,42 @@
       try {
         const res = await fetch(url);
         const data = await res.json();
-        if (!data.values || data.values.length < 2) return null;
-
         const headers = data.values[0];
+        const rows = data.values.slice(1);
         const thicknessCol = headers.findIndex(h => h.includes("厚度"));
-        const priceCol = headers.findIndex(h => h.includes("RMB"));
 
-        let closest = null;
-        let minDiff = Infinity;
+        const matchRows = rows.filter(row => {
+          const cell = row[thicknessCol];
+          if (!cell) return false;
+          const val = parseFloat(cell.toString().replace(/[^\d.]/g, ''));
+          return Math.abs(val - thickness) < 0.001;
+        });
 
-        for (let i = 1; i < data.values.length; i++) {
-          const row = data.values[i];
-          const raw = row[thicknessCol];
-          if (!raw) continue;
-
-          const cleaned = raw.toString()
-            .replace(/[．。]/g, '.')
-            .replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 65248))
-            .replace(/[^\d.]/g, '')
-            .trim();
-
-          const rowThickness = parseFloat(cleaned);
-          if (isNaN(rowThickness)) continue;
-
-          const diff = Math.abs(rowThickness - thickness);
-          if (diff < minDiff && diff <= 0.02) {
-            minDiff = diff;
-            closest = parseFloat(row[priceCol]);
-          }
+        if (matchRows.length === 0) {
+          document.getElementById('result').style.display = 'block';
+          document.getElementById('result').innerHTML = `⚠️ 未找到厚度 ${thickness} mm 对应的价格。`;
+          return;
         }
 
-        return closest;
+        let table = '<table border="1" cellspacing="0" cellpadding="6" style="width:100%; border-collapse: collapse;"><tr>';
+        headers.forEach(h => table += `<th>${h}</th>`);
+        table += '</tr>';
+
+        matchRows.forEach(row => {
+          table += '<tr>';
+          headers.forEach((_, i) => {
+            table += `<td>${row[i] || ''}</td>`;
+          });
+          table += '</tr>';
+        });
+
+        table += '</table>';
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('result').innerHTML = table;
       } catch (e) {
-        console.error("获取价格失败", e);
-        return null;
-      }
-    }
-
-    async function calculatePrice() {
-      const product = document.getElementById('product').value;
-      const thickness = parseFloat(document.getElementById('thickness').value);
-      const width = parseInt(document.getElementById('width').value);
-      if (isNaN(width) || width < 600 || width > 1500) {
         document.getElementById('result').style.display = 'block';
-        document.getElementById('result').innerHTML = `⚠️ 宽度 ${width}mm 不在推荐范围（600~1500mm），请确认后再试。`;
-        return;
+        document.getElementById('result').innerHTML = `❌ 获取数据失败：${e.message}`;
       }
-      const zinc = parseInt(document.getElementById('zinc').value);
-      const coating = document.getElementById('coating').value;
-      const packaging = document.getElementById('package').value;
-      const tons = parseFloat(document.getElementById('tons').value);
-
-      const basePrice = await getBasePrice(product, thickness);
-      if (!basePrice) {
-        document.getElementById('result').style.display = 'block';
-        document.getElementById('result').innerHTML = `⚠️ 未找到接近的厚度 ${thickness} 的价格。`;
-        return;
-      }
-
-      const zincAdj = Math.round((zinc - 80) / 10) * 30;
-      const coatingAdj = (coating === '20/5') ? 0 : 50;
-      const packAdj = (packaging === '精包') ? 50 : 0;
-
-      const finalPrice = basePrice + zincAdj + coatingAdj + packAdj;
-      const totalPrice = finalPrice * tons;
-
-      document.getElementById('result').style.display = 'block';
-      document.getElementById('result').innerHTML = `
-        <strong>产品：</strong> ${product}<br>
-        <strong>厚度：</strong> ${thickness} mm<br>
-        <strong>单价：</strong> <span style="color:green">RMB ${finalPrice.toFixed(2)}</span><br>
-        <strong>吨数：</strong> ${tons} 吨<br>
-        <strong>总价：</strong> <span style="color:green">RMB ${totalPrice.toFixed(2)}</span><br>
-        <small>(基础价：${basePrice} + 锌层调整：${zincAdj} + 漆膜：${coatingAdj} + 包装：${packAdj})</small>
-      `;
     }
   </script>
 </body>
