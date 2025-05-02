@@ -155,6 +155,7 @@
         message: content
       };
 
+      // 使用EmailJS发送邮件
       emailjs.send("service_6znq9zl", "template_nz69gvn", templateParams)
         .then(() => alert("邮件已成功发送"))
         .catch(err => {
