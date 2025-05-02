@@ -82,7 +82,7 @@
   <script>
     async function calculatePrice() {
       const product = document.getElementById('product').value;
-      const thickness = parseFloat(document.getElementById('thickness').value);
+      const thickness = document.getElementById('thickness').value.trim();
 
       const sheetId = "1L8RGRPI7BdIlDew99K7QIXU5f7llOLqWqskwXb1lms4";
       const sheetName = encodeURIComponent(product);
@@ -100,8 +100,7 @@
         const matchRows = rows.filter(row => {
           const cell = row[thicknessCol];
           if (!cell) return false;
-          const val = parseFloat(cell.toString().replace(/[^\d.]/g, ''));
-          return Math.abs(val - thickness) < 0.001;
+          return cell.toString().includes(thickness);
         });
 
         if (matchRows.length === 0) {
