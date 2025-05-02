@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>CHINACNU 价格计算器</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      padding: 40px;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      color: #1a73e8;
+    }
+    label {
+      display: block;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 30px;
+      padding: 12px;
+      width: 100%;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 30px;
+      padding: 20px;
+      background: white;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>CHINACNU 价格计算器</h1>
+
+  <label>选择产品种类</label>
+  <select id="product">
+    <option value="彩涂板(新增)">彩涂板(新增)</option>
+    <option value="有花镀锌 厚板">有花镀锌 厚板</option>
+    <option value="有花镀锌 (薄板)带精包">有花镀锌 (薄板)带精包</option>
+    <option value="彩基板">彩基板</option>
+    <option value="镀铝锌无耐指纹">镀铝锌无耐指纹</option>
+    <option value="彩涂漆膜12-5">彩涂漆膜12-5</option>
+    <option value="罩退冷轧卷板">罩退冷轧卷板</option>
+    <option value="热卷价格">热卷价格</option>
+    <option value="镀锌带钢">镀锌带钢</option>
+    <option value="国际型钢">国际型钢</option>
+    <option value="中国型钢">中国型钢</option>
+  </select>
+
+  <label>厚度 (mm)</label>
+  <input type="number" step="0.01" id="thickness" placeholder="例如 0.35">
+
+  <label>宽度 (mm)</label>
+  <input type="number" id="width" placeholder="例如 1000">
+
+  <label>锌层 (g/m²)</label>
+  <input type="number" id="zinc" placeholder="例如 80">
+
+  <label>漆膜厚度 (正面/背面)</label>
+  <input type="text" id="coating" placeholder="例如 20/5">
+
+  <label>包装方式</label>
+  <select id="package">
+    <option value="裸包">裸包</option>
+    <option value="精包">精包</option>
+  </select>
+
+  <label>吨数</label>
+  <input type="number" id="tons" placeholder="例如 10">
+
+  <button onclick="calculatePrice()">计算价格</button>
+
+  <div class="result" id="result" style="display:none"></div>
+
+  <script>
+    async function getBasePrice(product, thickness) {
+      const sheetId = "1L8RGRPI7BdIlDew99K7QIXU5f7llOLqWqskwXb1lms4";
+      const sheetName = encodeURIComponent(product);
+      const range = "A1:Z100";
+      const apiKey = "AIzaSyB-io6C9S0y5I6YXMi9TrDbAx8PkC2ReKo";
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/'${sheetName}'!${range}?key=${apiKey}`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.values || data.values.length < 2) return null;
+
+        const headers = data.values[0];
+        const thicknessCol = headers.indexOf("厚度(MM)");
+        const priceCol = headers.findIndex(h => h.includes("RMB"));
+
+        let closest = null;
+        let minDiff = Infinity;
+        for (let i = 1; i < data.values.length; i++) {
+          const row = data.values[i];
+          const rowThickness = parseFloat(row[thicknessCol]);
+          const diff = Math.abs(rowThickness - thickness);
+          if (diff <= 0.02 && diff < minDiff) {
+            minDiff = diff;
+            closest = parseFloat(row[priceCol]);
+          }
+        }
+        return closest;
+      } catch (e) {
+        console.error("获取价格失败", e);
+        return null;
+      }
+    }
+
+    async function calculatePrice() {
+      const product = document.getElementById('product').value;
+      const thickness = parseFloat(document.getElementById('thickness').value);
+      const width = parseInt(document.getElementById('width').value);
+      if (isNaN(width) || width < 600 || width > 1500) {
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('result').innerHTML = `⚠️ 宽度 ${width}mm 不在推荐范围（600~1500mm），请确认后再试。`;
+        return;
+      }
+      const zinc = parseInt(document.getElementById('zinc').value);
+      const coating = document.getElementById('coating').value;
+      const packaging = document.getElementById('package').value;
+      const tons = parseFloat(document.getElementById('tons').value);
+
+      const basePrice = await getBasePrice(product, thickness);
+      if (!basePrice) {
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('result').innerHTML = `⚠️ 未找到接近的厚度 ${thickness} 的价格。`;
+        return;
+      }
+
+      const zincAdj = Math.round((zinc - 80) / 10) * 30;
+      const coatingAdj = (coating === '20/5') ? 0 : 50;
+      const packAdj = (packaging === '精包') ? 50 : 0;
+
+      const finalPrice = basePrice + zincAdj + coatingAdj + packAdj;
+      const totalPrice = finalPrice * tons;
+
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('result').innerHTML = `
+        <strong>产品：</strong> ${product}<br>
+        <strong>厚度：</strong> ${thickness} mm<br>
+        <strong>单价：</strong> <span style="color:green">RMB ${finalPrice.toFixed(2)}</span><br>
+        <strong>吨数：</strong> ${tons} 吨<br>
+        <strong>总价：</strong> <span style="color:green">RMB ${totalPrice.toFixed(2)}</span><br>
+        <small>(基础价：${basePrice} + 锌层调整：${zincAdj} + 漆膜：${coatingAdj} + 包装：${packAdj})</small>
+      `;
+    }
+  </script>
+</body>
+</html>
