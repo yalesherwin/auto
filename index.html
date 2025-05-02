@@ -100,7 +100,7 @@
         const matchRows = rows.filter(row => {
           const cell = row[thicknessCol];
           if (!cell) return false;
-          const val = parseFloat(cell.toString().replace(/[^一-龥\d.]/g, ''));
+          const val = parseFloat(cell.toString().replace(/[^\d.]/g, ''));
           return Math.abs(val - thickness) < 0.001;
         });
 
@@ -133,4 +133,3 @@
   </script>
 </body>
 </html>
-
