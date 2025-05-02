@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CHINACNU 价格计算器</title>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2.6.4/dist/email.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -27,7 +28,7 @@
       margin-top: 5px;
     }
     button {
-      margin-top: 30px;
+      margin-top: 20px;
       padding: 12px;
       width: 100%;
       background: #1a73e8;
@@ -41,7 +42,8 @@
       padding: 20px;
       background: white;
       border: 1px solid #ccc;
-      white-space: normal; overflow-x: auto;
+      white-space: normal;
+      overflow-x: auto;
     }
   </style>
 </head>
@@ -70,16 +72,12 @@
 
   <div class="result" id="result" style="display:none"></div>
 
-  <h3>输入您的邮箱，接收报价</h3>
   <label>客户邮箱</label>
-  <input type="email" id="email" placeholder="客户邮箱">
-
+  <input type="email" id="customer_email" placeholder="请输入邮箱">
   <button onclick="sendEmail()">发送报价到邮箱</button>
 
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2.6.4/dist/email.min.js"></script>
-
   <script>
-    emailjs.init('gd39HyL57gtXbqPmy');  // 用您的用户 ID 替换
+    emailjs.init("gd39HyL57gtXbqPmy"); // Public key
 
     async function getMatchingRow(product, thickness) {
       const sheetId = "1L8RGRPI7BdIlDew99K7QIXU5f7llOLqWqskwXb1lms4";
@@ -99,13 +97,13 @@
 
         let closestRow = null;
         let minDiff = Infinity;
-        for (let i = 0; i < rows.length; i++) {
-          const val = parseFloat(rows[i][thicknessCol]);
+        for (const row of rows) {
+          const val = parseFloat(row[thicknessCol]);
           if (!isNaN(val)) {
             const diff = Math.abs(val - thickness);
             if (diff <= 0.01 && diff < minDiff) {
               minDiff = diff;
-              closestRow = rows[i];
+              closestRow = row;
             }
           }
         }
@@ -115,6 +113,8 @@
         return null;
       }
     }
+
+    let currentData = null;
 
     async function calculatePrice() {
       const product = document.getElementById('product').value;
@@ -127,38 +127,40 @@
         return;
       }
 
+      currentData = { product, thickness, headers: data.headers, row: data.row };
+
       const { headers, row } = data;
       let output = headers.map((h, i) => h.includes('成本') ? null : `<tr><td><strong>${h}</strong></td><td>${row[i]}</td></tr>`).filter(Boolean).join("");
       output = `<table style='width:100%;border-collapse:collapse;'>${output}</table>`;
-
       document.getElementById('result').style.display = 'block';
       document.getElementById('result').innerHTML = output;
     }
 
     function sendEmail() {
-      const product = document.getElementById('product').value;
-      const thickness = document.getElementById('thickness').value;
-      const email = document.getElementById('email').value;
-      
-      if (!email) {
-        alert("请填写邮箱地址");
+      if (!currentData) {
+        alert("请先获取价格，再发送邮件。");
+        return;
+      }
+      const email = document.getElementById("customer_email").value;
+      if (!email.includes("@")) {
+        alert("请输入有效邮箱");
         return;
       }
 
-      emailjs.send('service_6znq9zl', 'template_nz69gvn', {
-        product: product,
-        thickness: thickness,
-        price_1m_RMB: document.querySelector('#result td:nth-child(2)').textContent,  // 获取价格
-        price_1m_USD: document.querySelector('#result td:nth-child(3)').textContent,  // 获取价格
-        price_1_2m_RMB: document.querySelector('#result td:nth-child(4)').textContent,  // 获取价格
-        price_1_2m_USD: document.querySelector('#result td:nth-child(5)').textContent,  // 获取价格
-        email: email
-      }, 'gd39HyL57gtXbqPmy')  // 用您的用户 ID 替换
-      .then(function(response) {
-        alert('报价已发送到您的邮箱！');
-      }, function(error) {
-        alert('发送失败，请重试。');
-      });
+      const content = currentData.headers.map((h, i) => h.includes("成本") ? null : `${h}: ${currentData.row[i]}`).filter(Boolean).join("\n");
+      const templateParams = {
+        product: currentData.product,
+        thickness: currentData.thickness,
+        email,
+        message: content
+      };
+
+      emailjs.send("service_6znq9zl", "template_nz69gvn", templateParams)
+        .then(() => alert("邮件已成功发送"))
+        .catch(err => {
+          console.error(err);
+          alert("发送失败，请检查配置");
+        });
     }
   </script>
 </body>
