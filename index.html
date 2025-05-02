@@ -40,6 +40,18 @@
       background: white;
       border: 1px solid #ccc;
     }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
   </style>
 </head>
 <body>
@@ -88,7 +100,7 @@
         const matchRows = rows.filter(row => {
           const cell = row[thicknessCol];
           if (!cell) return false;
-          const val = parseFloat(cell.toString().replace(/[^\d.]/g, ''));
+          const val = parseFloat(cell.toString().replace(/[^一-龥\d.]/g, ''));
           return Math.abs(val - thickness) < 0.001;
         });
 
@@ -98,9 +110,9 @@
           return;
         }
 
-        let table = '<table border="1" cellspacing="0" cellpadding="6" style="width:100%; border-collapse: collapse;"><tr>';
+        let table = '<table><thead><tr>';
         headers.forEach(h => table += `<th>${h}</th>`);
-        table += '</tr>';
+        table += '</tr></thead><tbody>';
 
         matchRows.forEach(row => {
           table += '<tr>';
@@ -110,7 +122,7 @@
           table += '</tr>';
         });
 
-        table += '</table>';
+        table += '</tbody></table>';
         document.getElementById('result').style.display = 'block';
         document.getElementById('result').innerHTML = table;
       } catch (e) {
@@ -121,3 +133,4 @@
   </script>
 </body>
 </html>
+
