@@ -76,7 +76,7 @@
   <button onclick="sendEmail()">发送报价到邮箱</button>
 
   <script>
-    emailjs.init("gd39HyL57gtXbqPmy"); // 替换为你的 EmailJS User ID
+    emailjs.init("gd39HyL57gtXbqPmy"); // 使用您的 EmailJS User ID
 
     async function getMatchingRow(product, thickness) {
       const sheetId = "1L8RGRPI7BdIlDew99K7QIXU5f7llOLqWqskwXb1lms4";
@@ -143,22 +143,27 @@
         return;
       }
 
+      // 获取邮箱地址
       const customer_email = document.getElementById("customer_email").value;
-      if (!customer_email.includes("@")) {
-        alert("请输入有效邮箱");
+
+      // 检查邮箱地址
+      if (!customer_email || !customer_email.includes('@')) {
+        alert("请输入有效的邮箱地址！");
         return;
       }
 
+      // 创建报价表格内容
       const pricesHtml = currentData.headers.map((h, i) =>
         h.includes("成本") ? null : `<tr><td><strong>${h}</strong></td><td>${currentData.row[i]}</td></tr>`
       ).filter(Boolean).join("");
+
       const finalHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">${pricesHtml}</table>`;
 
       const templateParams = {
-        customer_email: customer_email,
-        prices: finalHtml,
-        product: currentData.product,
-        thickness: currentData.thickness
+        customer_email: customer_email,  // 客户邮箱
+        prices: finalHtml,                // 报价表格
+        product: currentData.product,     // 产品
+        thickness: currentData.thickness // 厚度
       };
 
       emailjs.send("service_6znq9zl", "template_nz69gvn", templateParams)
