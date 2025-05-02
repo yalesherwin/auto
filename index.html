@@ -4,18 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CHINACNU 价格计算器</title>
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/emailjs-com@3.2.0/dist/email.min.js"></script> <!-- 更新SDK版本 -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3.2.0/dist/email.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f8f9fa;
-      padding: env(safe-area-inset-top) 20px 40px 20px;
+      padding: 20px;
       max-width: 800px;
       margin: auto;
     }
     h1 {
       color: #1a73e8;
-      padding-top: 20px;
     }
     label {
       display: block;
@@ -42,12 +41,12 @@
       padding: 20px;
       background: white;
       border: 1px solid #ccc;
-      white-space: normal;
       overflow-x: auto;
     }
   </style>
 </head>
 <body>
+
   <h1>CHINACNU 价格计算器</h1>
 
   <label>选择产品种类</label>
@@ -77,7 +76,7 @@
   <button onclick="sendEmail()">发送报价到邮箱</button>
 
   <script>
-    emailjs.init("gd39HyL57gtXbqPmy"); // 使用您的EmailJS User ID
+    emailjs.init("gd39HyL57gtXbqPmy"); // 替换为你的 EmailJS User ID
 
     async function getMatchingRow(product, thickness) {
       const sheetId = "1L8RGRPI7BdIlDew99K7QIXU5f7llOLqWqskwXb1lms4";
@@ -130,8 +129,10 @@
       currentData = { product, thickness, headers: data.headers, row: data.row };
 
       const { headers, row } = data;
-      let output = headers.map((h, i) => h.includes('成本') ? null : `<tr><td><strong>${h}</strong></td><td>${row[i]}</td></tr>`).filter(Boolean).join("");
-      output = `<table style='width:100%;border-collapse:collapse;'>${output}</table>`;
+      let output = headers.map((h, i) =>
+        h.includes('成本') ? null : `<tr><td><strong>${h}</strong></td><td>${row[i]}</td></tr>`
+      ).filter(Boolean).join("");
+      output = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">${output}</table>`;
       document.getElementById('result').style.display = 'block';
       document.getElementById('result').innerHTML = output;
     }
@@ -141,22 +142,26 @@
         alert("请先获取价格，再发送邮件。");
         return;
       }
-      const email = document.getElementById("customer_email").value;
-      if (!email.includes("@")) {
+
+      const customer_email = document.getElementById("customer_email").value;
+      if (!customer_email.includes("@")) {
         alert("请输入有效邮箱");
         return;
       }
 
-      const content = currentData.headers.map((h, i) => h.includes("成本") ? null : `${h}: ${currentData.row[i]}`).filter(Boolean).join("\n");
+      const pricesHtml = currentData.headers.map((h, i) =>
+        h.includes("成本") ? null : `<tr><td><strong>${h}</strong></td><td>${currentData.row[i]}</td></tr>`
+      ).filter(Boolean).join("");
+      const finalHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">${pricesHtml}</table>`;
+
       const templateParams = {
+        customer_email: customer_email,
+        prices: finalHtml,
         product: currentData.product,
-        thickness: currentData.thickness,
-        email,
-        message: content // 报价内容
+        thickness: currentData.thickness
       };
 
-      // 发送邮件
-      emailjs.send("service_6znq9zl", "template_nz69gvn", templateParams) // 使用您提供的service_id和template_id
+      emailjs.send("service_6znq9zl", "template_nz69gvn", templateParams)
         .then(() => alert("邮件已成功发送"))
         .catch(err => {
           console.error(err);
