@@ -118,7 +118,7 @@
       }
 
       const { headers, row } = data;
-      let output = headers.map((h, i) => `${h}: ${row[i]}`).join(" | ");
+      let output = headers.map((h, i) => h.includes('成本') ? null : `${h}: ${row[i]}`).filter(Boolean).join(" | ");
 
       document.getElementById('result').style.display = 'block';
       document.getElementById('result').innerHTML = output;
