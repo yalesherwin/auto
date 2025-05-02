@@ -9,7 +9,7 @@
       font-family: Arial, sans-serif;
       background: #f8f9fa;
       padding: env(safe-area-inset-top) 20px 40px 20px;
-      max-width: 600px;
+      max-width: 800px;
       margin: auto;
     }
     h1 {
@@ -41,6 +41,7 @@
       padding: 20px;
       background: white;
       border: 1px solid #ccc;
+      white-space: pre-wrap;
     }
   </style>
 </head>
@@ -70,7 +71,7 @@
   <div class="result" id="result" style="display:none"></div>
 
   <script>
-    async function getBasePrice(product, thickness) {
+    async function getMatchingRow(product, thickness) {
       const sheetId = "1L8RGRPI7BdIlDew99K7QIXU5f7llOLqWqskwXb1lms4";
       const sheetName = encodeURIComponent(product);
       const range = "A1:Z100";
@@ -83,26 +84,24 @@
         if (!data.values || data.values.length < 2) return null;
 
         const headers = data.values[0];
+        const rows = data.values.slice(1);
         const thicknessCol = headers.findIndex(h => h.includes("厚度"));
-        const priceCol = headers.findIndex(h => h.includes("RMB"));
 
-        let closest = null;
+        let closestRow = null;
         let minDiff = Infinity;
-        for (let i = 1; i < data.values.length; i++) {
-          const row = data.values[i];
-          const rowThickness = parseFloat(row[thicknessCol]);
-          const diff = Math.abs(rowThickness - thickness);
-          if (diff <= 0.02 && diff < minDiff) {
-            minDiff = diff;
-            closest = {
-              thickness: rowThickness,
-              price: parseFloat(row[priceCol])
-            };
+        for (let i = 0; i < rows.length; i++) {
+          const val = parseFloat(rows[i][thicknessCol]);
+          if (!isNaN(val)) {
+            const diff = Math.abs(val - thickness);
+            if (diff <= 0.01 && diff < minDiff) {
+              minDiff = diff;
+              closestRow = rows[i];
+            }
           }
         }
-        return closest;
+        return { headers, row: closestRow };
       } catch (e) {
-        console.error("获取价格失败", e);
+        console.error("加载失败", e);
         return null;
       }
     }
@@ -110,18 +109,19 @@
     async function calculatePrice() {
       const product = document.getElementById('product').value;
       const thickness = parseFloat(document.getElementById('thickness').value);
+      const data = await getMatchingRow(product, thickness);
 
-      const priceData = await getBasePrice(product, thickness);
-      if (!priceData) {
+      if (!data || !data.row) {
         document.getElementById('result').style.display = 'block';
         document.getElementById('result').innerHTML = `⚠️ 未找到接近的厚度 ${thickness} 的价格。`;
         return;
       }
 
+      const { headers, row } = data;
+      let output = headers.map((h, i) => `${h}: ${row[i]}`).join(" | ");
+
       document.getElementById('result').style.display = 'block';
-      document.getElementById('result').innerHTML = `
-        厚度：<strong>${priceData.thickness}mm</strong> | 单价：<strong style="color:green">RMB ${priceData.price.toFixed(2)}</strong>
-      `;
+      document.getElementById('result').innerHTML = output;
     }
   </script>
 </body>
