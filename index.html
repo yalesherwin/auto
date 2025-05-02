@@ -8,7 +8,7 @@
       font-family: Arial, sans-serif;
       background: #f8f9fa;
       padding: 40px;
-      max-width: 600px;
+      max-width: 1000px;
       margin: auto;
     }
     h1 {
@@ -39,15 +39,18 @@
       padding: 20px;
       background: white;
       border: 1px solid #ccc;
+      overflow-x: auto;
     }
     table {
       border-collapse: collapse;
-      width: 100%;
+      width: max-content;
+      min-width: 100%;
     }
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
       text-align: center;
+      white-space: nowrap;
     }
     th {
       background-color: #f0f0f0;
@@ -73,7 +76,7 @@
   </select>
 
   <label>厚度 (mm)</label>
-  <input type="number" step="0.01" id="thickness" placeholder="例如 0.35">
+  <input type="text" id="thickness" placeholder="例如 0.35">
 
   <button onclick="calculatePrice()">查找所有价格</button>
 
@@ -82,7 +85,7 @@
   <script>
     async function calculatePrice() {
       const product = document.getElementById('product').value;
-      const thickness = document.getElementById('thickness').value.trim();
+      const thicknessInput = document.getElementById('thickness').value.trim();
 
       const sheetId = "1L8RGRPI7BdIlDew99K7QIXU5f7llOLqWqskwXb1lms4";
       const sheetName = encodeURIComponent(product);
@@ -95,21 +98,23 @@
         const data = await res.json();
         const headers = data.values[0];
         const rows = data.values.slice(1);
-        const thicknessCol = headers.findIndex(h => h.includes("厚度"));
+
+        const target = parseFloat(thicknessInput);
 
         const matchRows = rows.filter(row => {
-          const cell = row[thicknessCol];
+          const cell = row[0];
           if (!cell) return false;
-          return cell.toString().includes(thickness);
+          const numeric = parseFloat(cell.toString().replace(/[^\d.]/g, ''));
+          return Math.abs(numeric - target) < 0.001;
         });
 
         if (matchRows.length === 0) {
           document.getElementById('result').style.display = 'block';
-          document.getElementById('result').innerHTML = `⚠️ 未找到厚度 ${thickness} mm 对应的价格。`;
+          document.getElementById('result').innerHTML = `⚠️ 未找到厚度 ${thicknessInput} mm 对应的价格。`;
           return;
         }
 
-        let table = '<table><thead><tr>';
+        let table = '<div style="overflow-x:auto;"><table><thead><tr>';
         headers.forEach(h => table += `<th>${h}</th>`);
         table += '</tr></thead><tbody>';
 
@@ -121,7 +126,7 @@
           table += '</tr>';
         });
 
-        table += '</tbody></table>';
+        table += '</tbody></table></div>';
         document.getElementById('result').style.display = 'block';
         document.getElementById('result').innerHTML = table;
       } catch (e) {
