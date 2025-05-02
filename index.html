@@ -83,7 +83,7 @@
         if (!data.values || data.values.length < 2) return null;
 
         const headers = data.values[0];
-        const thicknessCol = headers.indexOf("厚度(MM)");
+        const thicknessCol = headers.findIndex(h => h.includes("厚度"));
         const priceCol = headers.findIndex(h => h.includes("RMB"));
 
         let closest = null;
